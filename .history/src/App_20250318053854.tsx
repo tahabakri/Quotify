@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Quote, PointerIcon as PinterestIcon, Wand2, Sparkles, Sun, Moon } from 'lucide-react';
+import { ImageIcon, Quote, PointerIcon as PinterestIcon, Wand2, Calendar, Sparkles, Sun, Moon } from 'lucide-react';
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -40,75 +40,42 @@ function App() {
       </button>
 
       {/* Hero Section */}
-      <header className="container mx-auto px-4 py-16 md:py-24 relative overflow-hidden">
-        {/* Abstract Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-100/50 to-pink-100/50 dark:from-purple-900/20 dark:to-pink-900/20 pointer-events-none" />
-        
-        <div className="text-center relative z-10">
+      <header className="container mx-auto px-4 py-16 md:py-24">
+        <div className="text-center">
           <h1 className={`text-4xl md:text-6xl font-bold mb-6 transition-colors duration-300 ${
             darkMode ? 'text-white' : 'text-purple-900'
           }`}>
-            Turn Your Favorite Quotes into
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600"> Stunning Art</span>
-            <span className="block text-2xl md:text-3xl mt-2 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">in Seconds!</span>
+            Transform Quotes into
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600"> AI-Powered Art</span>
           </h1>
-          <p className={`text-xl mb-12 max-w-2xl mx-auto transition-colors duration-300 ${
+          <p className={`text-xl mb-8 max-w-2xl mx-auto transition-colors duration-300 ${
             darkMode ? 'text-gray-300' : 'text-gray-600'
           }`}>
-            Find a book, pick or create a quote, and let AI design beautiful, shareable visuals tailored to you. Simple, fast, and free to start!
+            Automatically generate beautiful AI images with quotes and share them directly to Pinterest. Perfect for content creators and social media managers.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-            <button className="bg-purple-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl">
-              Start Creating Free
-            </button>
-            <button className={`px-8 py-4 rounded-full text-lg font-semibold transition-all duration-300 ${
-              darkMode
-                ? 'bg-dark-200 text-white hover:bg-dark-100'
-                : 'bg-white text-purple-900 hover:bg-purple-50'
-            } shadow-lg hover:shadow-xl`}>
-              Explore Trending Books
-            </button>
-          </div>
-          
-          {/* Floating Pop-up Callout */}
-          <div className={`inline-block py-2 px-4 rounded-full text-sm font-medium mb-8 transition-all duration-300 ${
-            darkMode
-              ? 'bg-dark-200 text-gray-300'
-              : 'bg-white text-gray-600'
-          } shadow-lg`}>
-            <Sparkles className="w-4 h-4 inline-block mr-2 text-purple-500" />
-            No sign-up required! Start creating immediately
-          </div>
+          <button className="bg-purple-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl">
+            Get Started Free
+          </button>
         </div>
       </header>
 
-      {/* Carousel Section */}
-      <section className="container mx-auto px-4 pb-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map((index) => (
-            <div key={index} className={`rounded-2xl shadow-2xl overflow-hidden transition-colors duration-300 relative ${
-              darkMode ? 'bg-dark-100' : 'bg-white'
-            }`}>
-              <div className="aspect-[4/5] relative">
-                <img
-                  src={`https://source.unsplash.com/random/800x1000?book,quote&sig=${index}`}
-                  alt={`Sample quote design ${index}`}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6">
-                  <p className="text-white text-xl font-serif max-w-lg">
-                    {index === 1 && '"The future belongs to those who believe in their dreams."'}
-                    {index === 2 && '"Life is what happens while you\'re busy making other plans."'}
-                    {index === 3 && '"In the middle of difficulty lies opportunity."'}
-                  </p>
-                </div>
-                {/* Made in 30 Seconds Banner */}
-                <div className="absolute top-4 right-4 bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
-                  Made in 30 Seconds
-                </div>
-              </div>
+      {/* Feature Preview */}
+      <section className="container mx-auto px-4 py-16">
+        <div className={`rounded-2xl shadow-2xl overflow-hidden transition-colors duration-300 ${
+          darkMode ? 'bg-dark-100' : 'bg-white'
+        }`}>
+          <div className="aspect-video relative">
+            <img
+              src="https://images.unsplash.com/photo-1518655048521-f130df041f66?auto=format&fit=crop&w=1200&q=80"
+              alt="Workspace with quote"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-center justify-center">
+              <p className="text-white text-3xl font-serif max-w-lg text-center px-4">
+                "The future belongs to those who believe in the beauty of their dreams."
+              </p>
             </div>
-          ))}
+          </div>
         </div>
       </section>
 

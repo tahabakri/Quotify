@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Quote, PointerIcon as PinterestIcon, Wand2, Sparkles, Sun, Moon } from 'lucide-react';
+import { ImageIcon, Quote, PointerIcon as PinterestIcon, Wand2, Calendar, Sparkles, Sun, Moon } from 'lucide-react';
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {

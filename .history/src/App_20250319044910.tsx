@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Quote, PointerIcon as PinterestIcon, Wand2, Sparkles, Sun, Moon } from 'lucide-react';
+import { ImageIcon, Quote, PointerIcon as PinterestIcon, Wand2, Calendar, Sparkles, Sun, Moon } from 'lucide-react';
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -98,7 +98,7 @@ function App() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6">
                   <p className="text-white text-xl font-serif max-w-lg">
                     {index === 1 && '"The future belongs to those who believe in their dreams."'}
-                    {index === 2 && '"Life is what happens while you\'re busy making other plans."'}
+                    {index === 2 && '"Life is what happens while you're busy making other plans."'}
                     {index === 3 && '"In the middle of difficulty lies opportunity."'}
                   </p>
                 </div>
