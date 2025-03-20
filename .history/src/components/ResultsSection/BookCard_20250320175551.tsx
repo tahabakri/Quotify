@@ -1,6 +1,5 @@
 import { Star, Bookmark, Quote as QuoteIcon, Eye } from 'lucide-react';
 import type { Book } from '../../contexts/SearchContext';
-import { BookCover } from './BookCover';
 
 interface BookCardProps {
   book: Book;

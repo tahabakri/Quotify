@@ -108,9 +108,19 @@ class GoogleBooksService {
     return highQualityUrl;
   }
 
-  private buildTrendingQuery(): string {
-    // Combine relevance with popularity signals
-    return 'orderBy=relevance&langRestrict=en';
+  private buildSearchQuery({ query, filter, genres }: SearchParams): string {
+    let searchQuery = query || '';
+
+    if (filter === 'latest') {
+      searchQuery = `${searchQuery} &orderBy=newest`;
+    }
+
+    if (filter === 'genre' && genres?.length) {
+      const genreQuery = genres.map(genre => `subject:${genre}`).join(' OR ');
+      searchQuery = searchQuery ? `${searchQuery} (${genreQuery})` : genreQuery;
+    }
+
+    return searchQuery || '*';
   }
 
   async searchBooks(params: SearchParams): Promise<SearchResult> {
@@ -120,28 +130,23 @@ class GoogleBooksService {
 
     const { page = 0, pageSize = DEFAULT_PAGE_SIZE } = params;
     const startIndex = page * pageSize;
-    
+
+    const searchQuery = this.buildSearchQuery(params);
     const url = new URL(`${GOOGLE_BOOKS_API}/volumes`);
+    
+    url.searchParams.append('q', searchQuery);
     url.searchParams.append('key', API_KEY);
     url.searchParams.append('maxResults', pageSize.toString());
     url.searchParams.append('startIndex', startIndex.toString());
     url.searchParams.append('printType', 'books');
-    url.searchParams.append('projection', 'full');
-
-    // Build search query based on filter
+    
+    // For trending, prioritize books with ratings and sort by relevance
     if (params.filter === 'trending') {
-      // For trending books, focus on popular and well-rated books
-      url.searchParams.append('q', params.query || 'subject:fiction');
-      url.searchParams.append('orderBy', 'relevance');
-      url.searchParams.append('filter', 'paid-ebooks');
-      url.searchParams.append('langRestrict', 'en');
-    } else if (params.filter === 'latest') {
-      url.searchParams.append('q', `${params.query || '*'} &orderBy=newest`);
-    } else if (params.filter === 'genre' && params.genres?.length) {
-      const genreQuery = params.genres.map(genre => `subject:${genre}`).join(' OR ');
-      url.searchParams.append('q', params.query ? `${params.query} (${genreQuery})` : genreQuery);
-    } else {
-      url.searchParams.append('q', params.query || '*');
+      searchQuery += ' &orderBy=relevance';
+      // Add filtering to show only books with ratings and reasonable popularity
+      url.searchParams.append('filter', 'paid-ebooks'); // Usually more complete metadata
+      url.searchParams.append('projection', 'full'); // Get full book data
+      url.searchParams.append('langRestrict', 'en'); // English books for better results
     }
 
     try {
@@ -158,6 +163,11 @@ class GoogleBooksService {
         throw new Error('Invalid API response format');
       }
       
+      console.log('Parsed API response:', {
+        totalItems: data?.totalItems,
+        itemsCount: data?.items?.length
+      });
+      
       if (!data) {
         console.warn('Empty response from Google Books API');
         return { books: [], totalItems: 0, hasMore: false };
@@ -168,8 +178,7 @@ class GoogleBooksService {
         return { books: [], totalItems: data.totalItems, hasMore: false };
       }
       
-      // Sort by popularity for trending results
-      let books = data.items.map(item => ({
+      const books = data.items.map(item => ({
         id: item.id,
         title: item.volumeInfo.title,
         author: item.volumeInfo.authors?.[0] || 'Unknown Author',
@@ -182,13 +191,6 @@ class GoogleBooksService {
         categories: item.volumeInfo.categories,
         ratingsCount: item.volumeInfo.ratingsCount,
       }));
-
-      // For trending, prioritize books with more ratings and better metadata
-      if (params.filter === 'trending') {
-        books = books
-          .filter(book => book.ratingsCount || book.rating > 0) // Only books with some engagement
-          .sort((a, b) => (b.ratingsCount || 0) - (a.ratingsCount || 0)); // Sort by popularity
-      }
 
       const hasMore = startIndex + books.length < data.totalItems;
 
