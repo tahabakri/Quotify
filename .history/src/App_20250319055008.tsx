@@ -2,9 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Quote, PointerIcon as PinterestIcon, Wand2, Sparkles, Sun, Moon } from 'lucide-react';
 import { SearchSection } from './components/SearchSection/SearchSection';
 import { ResultsGrid } from './components/ResultsSection/ResultsGrid';
-import { SearchProvider } from './contexts/SearchContext';
 
-function AppContent() {
+function App() {
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -167,14 +166,6 @@ function FeatureCard({
         darkMode ? 'text-gray-300' : 'text-gray-600'
       }`}>{description}</p>
     </div>
-  );
-}
-
-function App() {
-  return (
-    <SearchProvider>
-      <AppContent />
-    </SearchProvider>
   );
 }
 

@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Quote, PointerIcon as PinterestIcon, Wand2, Sparkles, Sun, Moon } from 'lucide-react';
 import { SearchSection } from './components/SearchSection/SearchSection';
-import { ResultsGrid } from './components/ResultsSection/ResultsGrid';
-import { SearchProvider } from './contexts/SearchContext';
 
-function AppContent() {
+function App() {
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -85,12 +83,34 @@ function AppContent() {
         </div>
       </header>
 
-      {/* Search & Filter Section */}
-      <SearchSection />
-
-      {/* Results Section */}
-      <section className="container mx-auto px-4 py-8">
-        <ResultsGrid className="min-h-[400px]" />
+      {/* Carousel Section */}
+      <section className="container mx-auto px-4 pb-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((index) => (
+            <div key={index} className={`rounded-2xl shadow-2xl overflow-hidden transition-colors duration-300 relative ${
+              darkMode ? 'bg-dark-100' : 'bg-white'
+            }`}>
+              <div className="aspect-[4/5] relative">
+                <img
+                  src={`https://source.unsplash.com/random/800x1000?book,quote&sig=${index}`}
+                  alt={`Sample quote design ${index}`}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6">
+                  <p className="text-white text-xl font-serif max-w-lg">
+                    {index === 1 && '"The future belongs to those who believe in their dreams."'}
+                    {index === 2 && '"Life is what happens while you\'re busy making other plans."'}
+                    {index === 3 && '"In the middle of difficulty lies opportunity."'}
+                  </p>
+                </div>
+                {/* Made in 30 Seconds Banner */}
+                <div className="absolute top-4 right-4 bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
+                  Made in 30 Seconds
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Features Grid */}
@@ -167,14 +187,6 @@ function FeatureCard({
         darkMode ? 'text-gray-300' : 'text-gray-600'
       }`}>{description}</p>
     </div>
-  );
-}
-
-function App() {
-  return (
-    <SearchProvider>
-      <AppContent />
-    </SearchProvider>
   );
 }
 

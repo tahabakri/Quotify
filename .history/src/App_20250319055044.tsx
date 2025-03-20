@@ -5,6 +5,8 @@ import { ResultsGrid } from './components/ResultsSection/ResultsGrid';
 import { SearchProvider } from './contexts/SearchContext';
 
 function AppContent() {
+
+function App() {
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -167,14 +169,6 @@ function FeatureCard({
         darkMode ? 'text-gray-300' : 'text-gray-600'
       }`}>{description}</p>
     </div>
-  );
-}
-
-function App() {
-  return (
-    <SearchProvider>
-      <AppContent />
-    </SearchProvider>
   );
 }
 
