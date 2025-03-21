@@ -1,138 +1,125 @@
-const OPEN_LIBRARY_API = 'https://openlibrary.org';
-import type { SearchResult } from './googleBooks';
+import { Book } from './supabase/types';
 
-interface OpenLibraryBook {
-  key: string;
-  title: string;
-  author_name?: string[];
-  first_publish_year?: number;
-  cover_i?: number;
-  ratings_average?: number;
-  description?: string;
-  editions_count?: number; // Number of editions indicates popularity
-  has_fulltext?: boolean;
-}
+const API_BASE_URL = 'https://openlibrary.org';
+const COVERS_BASE_URL = 'https://covers.openlibrary.org/b';
 
 interface OpenLibraryResponse {
+  docs: Array<{
+    key: string;
+    title: string;
+    author_name?: string[];
+    first_publish_year?: number;
+    isbn?: string[];
+    cover_i?: number;
+    description?: string;
+  }>;
   numFound: number;
-  start: number;
-  docs: OpenLibraryBook[];
 }
 
-export type SearchParams = {
-  query?: string;
-  filter?: string;
-  genres?: string[];
-  page?: number;
-  pageSize?: number;
-};
+interface OpenLibraryBookDetails {
+  key: string;
+  title: string;
+  authors?: Array<{ name: string }>;
+  description?: { value?: string } | string;
+  covers?: number[];
+  publish_date?: string;
+}
 
-const DEFAULT_PAGE_SIZE = 24;
+function getCoverUrl(coverId: number, size: 'S' | 'M' | 'L' = 'L') {
+  return `${COVERS_BASE_URL}/id/${coverId}-${size}.jpg`;
+}
 
-class OpenLibraryService {
-  private getCoverUrl(coverId: number | undefined): string {
-    if (!coverId) return 'https://placehold.co/300x450/png?text=No+Cover';
-    return `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`;
-  }
+export async function searchBooks(
+  query: string,
+  options: {
+    offset?: number;
+    limit?: number;
+  } = {}
+): Promise<{ books: Book[]; total: number }> {
+  const {
+    offset = 0,
+    limit = 10,
+  } = options;
 
-  private buildSearchQuery({ query, filter, genres }: SearchParams): string {
-    const parts: string[] = [];
+  const params = new URLSearchParams({
+    q: query,
+    offset: offset.toString(),
+    limit: limit.toString(),
+    mode: 'everything',
+    has_fulltext: 'true',
+    fields: 'key,title,author_name,first_publish_year,isbn,cover_i,description',
+  });
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/search.json?${params}`);
     
-    if (query) {
-      parts.push(query);
+    if (!response.ok) {
+      throw new Error('Failed to fetch books from OpenLibrary API');
     }
 
-    // Add filters based on the selected option
-    if (filter === 'latest') {
-      const twoYearsAgo = new Date().getFullYear() - 2;
-      parts.push(`publish_year:[${twoYearsAgo} TO *]`);
-    }
+    const data: OpenLibraryResponse = await response.json();
 
-    if (filter === 'trending') {
-      // For trending books, prioritize:
-      // 1. Books with high number of editions (popular)
-      // 2. Books that are available in full text (more likely to be notable)
-      parts.push('has_fulltext:true');
-      // Will sort by editions_count in the results processing
-    }
+    const books: Book[] = data.docs.map(doc => ({
+      id: doc.key.replace('/works/', ''),
+      title: doc.title,
+      author: doc.author_name?.[0] || 'Unknown Author',
+      description: typeof doc.description === 'string' ? doc.description : undefined,
+      cover_url: doc.cover_i ? getCoverUrl(doc.cover_i) : undefined,
+      published_date: doc.first_publish_year?.toString(),
+      info_link: `${API_BASE_URL}${doc.key}`,
+    }));
 
-    if (filter === 'genre' && genres?.length) {
-      const genreQuery = genres.map(genre => `subject:${genre}`).join(' OR ');
-      if (genreQuery) {
-        parts.push(`(${genreQuery})`);
-      }
-    }
-
-    return parts.join(' ') || '*:*';
-  }
-
-  async searchBooks(params: SearchParams): Promise<SearchResult> {
-    const { page = 0, pageSize = DEFAULT_PAGE_SIZE } = params;
-    const searchQuery = this.buildSearchQuery(params);
-    const url = new URL(`${OPEN_LIBRARY_API}/search.json`);
-    
-    url.searchParams.append('q', searchQuery);
-    url.searchParams.append('fields', 'key,title,author_name,first_publish_year,cover_i,ratings_average,description,editions_count,has_fulltext');
-    url.searchParams.append('limit', (pageSize * 2).toString()); // Fetch more to filter
-    url.searchParams.append('offset', (page * pageSize).toString());
-
-    try {
-      console.log('Fetching books from Open Library:', url.toString());
-      const response = await fetch(url.toString());
-      if (!response.ok) throw new Error('Failed to fetch books from Open Library');
-      
-      const data: OpenLibraryResponse = await response.json();
-      
-      let books = data.docs.map(book => ({
-        id: book.key.replace('/works/', ''),
-        title: book.title,
-        author: book.author_name?.[0] || 'Unknown Author',
-        coverUrl: this.getCoverUrl(book.cover_i),
-        rating: book.ratings_average || 0,
-        publishYear: book.first_publish_year,
-        description: book.description,
-        editionsCount: book.editions_count || 0,
-      }));
-
-      // For trending, prioritize books with more editions and available full text
-      if (params.filter === 'trending') {
-        books = books
-          .sort((a, b) => b.editionsCount - a.editionsCount)
-          .slice(0, pageSize); // Take only the top results after sorting
-      }
-
-      return {
-        books,
-        totalItems: data.numFound,
-        hasMore: (page + 1) * pageSize < data.numFound,
-      };
-    } catch (error) {
-      console.error('Error fetching books from Open Library:', error);
-      throw error;
-    }
-  }
-
-  async getBookDetails(workId: string) {
-    try {
-      const response = await fetch(`${OPEN_LIBRARY_API}/works/${workId}.json`);
-      if (!response.ok) throw new Error('Failed to fetch book details');
-      
-      const data = await response.json();
-      return {
-        id: workId,
-        title: data.title,
-        author: data.authors?.[0]?.name || 'Unknown Author',
-        coverUrl: this.getCoverUrl(data.covers?.[0]),
-        rating: data.ratings_average || 0,
-        publishYear: data.first_publish_year,
-        description: data.description?.value || data.description,
-        editionsCount: data.editions_count,
-      };
-    } catch (error) {
-      console.error('Error fetching book details:', error);
-      throw error;
-    }
+    return {
+      books,
+      total: data.numFound,
+    };
+  } catch (error) {
+    console.error('OpenLibrary API error:', error);
+    throw new Error('Failed to search books');
   }
 }
 
-export const openLibraryService = new OpenLibraryService();
+export async function getBookById(id: string): Promise<Book> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/works/${id}.json`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch book details from OpenLibrary API');
+    }
+
+    const data: OpenLibraryBookDetails = await response.json();
+
+    return {
+      id: data.key.replace('/works/', ''),
+      title: data.title,
+      author: data.authors?.[0]?.name || 'Unknown Author',
+      description: typeof data.description === 'string' ? 
+        data.description : 
+        data.description?.value,
+      cover_url: data.covers?.[0] ? getCoverUrl(data.covers[0]) : undefined,
+      published_date: data.publish_date,
+      info_link: `${API_BASE_URL}${data.key}`,
+    };
+  } catch (error) {
+    console.error('OpenLibrary API error:', error);
+    throw new Error('Failed to fetch book details');
+  }
+}
+
+interface CoverPlaceholderOptions {
+  darkMode?: boolean;
+  width?: number;
+  height?: number;
+  text?: string;
+}
+
+export function getCoverPlaceholder({
+  darkMode = false,
+  width = 300,
+  height = 450,
+  text = 'No Cover Available'
+}: CoverPlaceholderOptions = {}) {
+  const bgColor = darkMode ? '2d3748' : 'f7fafc';
+  const textColor = darkMode ? 'a0aec0' : '4a5568';
+  return `https://placehold.co/${width}x${height}/${bgColor}/${textColor}/png?text=${encodeURIComponent(text)}`;
+}

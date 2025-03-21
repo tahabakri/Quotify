@@ -1,49 +1,40 @@
-import { TrendingUp, Clock, BookOpen } from 'lucide-react';
-
-interface QuickFilter {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-}
+import { useSearch } from '../../contexts/useSearch';
 
 interface QuickFiltersProps {
-  onFilterSelect: (filterId: string) => void;
-  selectedFilter: string;
   className?: string;
 }
 
-const filters: QuickFilter[] = [
-  {
-    id: 'trending',
-    label: 'Trending',
-    icon: <TrendingUp className="w-4 h-4" />,
-  },
-  {
-    id: 'latest',
-    label: 'Latest',
-    icon: <Clock className="w-4 h-4" />,
-  },
-  {
-    id: 'genre',
-    label: 'By Genre',
-    icon: <BookOpen className="w-4 h-4" />,
-  },
-];
+const filters = [
+  { id: 'trending', label: 'Trending' },
+  { id: 'recent', label: 'Recent' },
+  { id: 'popular', label: 'Popular' },
+  { id: 'recommended', label: 'For You' },
+] as const;
 
-export function QuickFilters({ onFilterSelect, selectedFilter, className = '' }: QuickFiltersProps) {
+export function QuickFilters({ className = '' }: QuickFiltersProps) {
+  const { filters: activeFilters, setFilters } = useSearch();
+  const activeQuickFilter = activeFilters.quickFilter || 'trending';
+
+  const handleFilterSelect = (filterId: string) => {
+    setFilters({
+      ...activeFilters,
+      quickFilter: filterId
+    });
+  };
+
   return (
-    <div className={`flex gap-4 ${className}`}>
-      {filters.map((filter) => (
+    <div className={className}>
+      {filters.map(filter => (
         <button
           key={filter.id}
-          onClick={() => onFilterSelect(filter.id)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-            selectedFilter === filter.id
-              ? 'bg-purple-600 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-200 dark:text-gray-300 dark:hover:bg-dark-100'
+          onClick={() => handleFilterSelect(filter.id)}
+          className={`w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+            activeQuickFilter === filter.id
+              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+              : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
           }`}
+          aria-pressed={activeQuickFilter === filter.id ? 'true' : 'false'}
         >
-          {filter.icon}
           {filter.label}
         </button>
       ))}

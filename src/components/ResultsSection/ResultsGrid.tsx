@@ -1,129 +1,102 @@
+import React, { useCallback } from 'react';
+import { Quote, Book, SearchResult } from '../../services/supabase/types';
+import QuoteCard from '../QuoteImage/QuoteCard';
 import { BookCard } from './BookCard';
-import { useSearch } from '../../contexts/SearchContext';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
-import { BookDetailsView } from '../BookDetails/BookDetailsView';
-import { useEffect, useState } from 'react';
-import type { Book } from '../../contexts/SearchContext';
 
 interface ResultsGridProps {
+  results: SearchResult[];
+  loading: boolean;
+  hasMore: boolean;
+  onLoadMore: () => void;
+  type: 'quotes' | 'books';
   className?: string;
 }
 
-export function ResultsGrid({ className = '' }: ResultsGridProps) {
-  const { 
-    loading, 
-    books, 
-    error, 
-    hasMore, 
-    loadMore, 
-    totalItems 
-  } = useSearch();
+const isQuote = (item: SearchResult): item is Quote => {
+  return 'content' in item;
+};
 
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+const isBook = (item: SearchResult): item is Book => {
+  return 'title' in item && !('content' in item);
+};
 
-  const { targetRef, resetHasMore } = useInfiniteScroll({
-    loading,
-    threshold: 300,
+export const ResultsGrid: React.FC<ResultsGridProps> = ({
+  results,
+  loading,
+  hasMore,
+  onLoadMore,
+  type,
+  className = ''
+}) => {
+  const { ref } = useInfiniteScroll(onLoadMore, {
+    threshold: 0.8,
+    enabled: hasMore && !loading
   });
 
-  useEffect(() => {
-    if (!loading && hasMore) {
-      loadMore();
-    }
-  }, [loading, hasMore, loadMore]);
+  const handlePreview = useCallback((book: Book) => {
+    window.open(book.preview_link || book.info_link, '_blank');
+  }, []);
 
-  useEffect(() => {
-    resetHasMore();
-  }, [books.length]);
+  const renderQuote = (quote: Quote) => (
+    <QuoteCard
+      key={quote.id}
+      quote={quote}
+      className="transition-all duration-300 hover:shadow-lg"
+    />
+  );
 
-  const handleSave = (id: string) => {
-    console.log('Save book:', id);
-    // TODO: Implement save functionality
-  };
-
-  const handleQuote = (id: string) => {
-    console.log('View quotes:', id);
-    // TODO: Implement quote viewing functionality
-  };
-
-  const handlePreview = (book: Book) => {
-    setSelectedBook(book);
-  };
-
-  if (loading && books.length === 0) {
-    return (
-      <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 ${className}`}>
-        {[1, 2, 3, 4, 5, 6].map((index) => (
-          <div
-            key={index}
-            className="bg-gray-100 dark:bg-dark-200 rounded-xl animate-pulse"
-            style={{ aspectRatio: '3/4' }}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (error && books.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-600 dark:text-red-400">{error}</p>
-      </div>
-    );
-  }
-
-  if (books.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-gray-600 dark:text-gray-400">No books found. Try adjusting your search.</p>
-      </div>
-    );
-  }
+  const renderBook = (book: Book) => (
+    <BookCard
+      key={book.id}
+      book={{
+        ...book,
+        cover_url: book.cover_url || ''
+      }}
+      onPreview={() => handlePreview(book)}
+      className="transition-all duration-300 hover:shadow-lg"
+    />
+  );
 
   return (
-    <>
-      <div className="space-y-6">
-        <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 ${className}`}>
-          {books.map((book) => (
-            <BookCard
-              key={book.id}
-              book={book}
-              onSave={handleSave}
-              onQuote={handleQuote}
-              onPreview={handlePreview}
-            />
-          ))}
-        </div>
-
-        {/* Loading indicator */}
-        {loading && (
-          <div className="flex justify-center py-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
-          </div>
-        )}
-
-        {/* Infinite scroll trigger */}
-        {hasMore && (
-          <div 
-            ref={targetRef} 
-            className="h-4"
-            aria-hidden="true"
-          />
-        )}
-
-        {/* Results count */}
-        <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-          Showing {books.length} of {totalItems} books
-        </div>
+    <div className={`space-y-6 ${className}`}>
+      <div className="grid grid-cols-1 gap-6">
+        {results.map((item) => {
+          if (type === 'quotes' && isQuote(item)) {
+            return renderQuote(item);
+          }
+          if (type === 'books' && isBook(item)) {
+            return renderBook(item);
+          }
+          return null;
+        })}
       </div>
 
-      {/* Book Details Modal */}
-      {selectedBook && (
-        <BookDetailsView
-          book={selectedBook}
-          onClose={() => setSelectedBook(null)}
-        />
+      {loading && (
+        <div className="flex justify-center p-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+        </div>
       )}
-    </>
+
+      {!loading && hasMore && (
+        <div ref={ref} className="h-20 flex items-center justify-center">
+          <div className="text-gray-500">Scroll for more</div>
+        </div>
+      )}
+
+      {!loading && !hasMore && results.length > 0 && (
+        <div className="text-center text-gray-500 py-4">
+          No more {type} to load
+        </div>
+      )}
+
+      {!loading && results.length === 0 && (
+        <div className="text-center text-gray-500 py-8">
+          No {type} found matching your criteria
+        </div>
+      )}
+    </div>
   );
-}
+};
+
+export default ResultsGrid;

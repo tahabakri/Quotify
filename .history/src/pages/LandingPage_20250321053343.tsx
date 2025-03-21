@@ -1,0 +1,58 @@
+import { SearchSection } from '../components/SearchSection';
+import { TrendingQuotes } from '../components/TrendingQuotes/TrendingQuotes';
+
+export function LandingPage() {
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <main className="container mx-auto px-4 py-8">
+        {/* Hero Section with Search */}
+        <section className="mb-16">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+              Discover Inspiring Quotes
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Search millions of quotes from books, explore trending content, or create your own collections.
+            </p>
+          </div>
+          <SearchSection />
+        </section>
+
+        {/* Trending Quotes Section */}
+        <section className="mb-16">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Trending Quotes
+            </h2>
+            <button
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+              onClick={() => {/* TODO: Navigate to trending page */}}
+            >
+              View All
+            </button>
+          </div>
+          <TrendingQuotes />
+        </section>
+
+        {/* Featured Collections Preview - To be implemented */}
+        <section>
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Featured Collections
+            </h2>
+            <button
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+              onClick={() => {/* TODO: Navigate to collections page */}}
+            >
+              View All
+            </button>
+          </div>
+          {/* TODO: Add FeaturedCollections component */}
+          <div className="text-center text-gray-600 dark:text-gray-400 py-12">
+            Coming Soon: Curated collections of inspiring quotes
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
