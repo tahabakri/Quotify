@@ -1,117 +1,60 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { QuoteCard } from '../components/quote/QuoteCard';
+import { useParams } from 'react-router-dom';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { getImageUrl } from '../utils/imageHelpers';
-
-interface Book {
-  id: string;
-  title: string;
-  coverUrl?: string;
-  description: string;
-  publicationYear: number;
-}
-
-interface Author {
-  id: string;
-  name: string;
-  imageUrl?: string;
-  bio: string;
-  birthYear?: number;
-  deathYear?: number;
-  nationality?: string;
-  quotes: {
-    id: string;
-    content: string;
-    book?: {
-      id: string;
-      title: string;
-    };
-  }[];
-  books: Book[];
-}
+import { getAuthorBySlug, getQuotesByAuthor } from '../api/authors';
+import { searchBooks } from '../api/books';
+import type { QuotableAuthor } from '../api/authors';
+import type { QuotableQuote } from '../api/quotes';
+import type { OpenLibraryBook } from '../api/books';
 
 const AuthorDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [author, setAuthor] = useState<Author | null>(null);
+  const [author, setAuthor] = useState<QuotableAuthor | null>(null);
+  const [quotes, setQuotes] = useState<QuotableQuote[]>([]);
+  const [books, setBooks] = useState<OpenLibraryBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAuthor = async () => {
+      if (!id) return;
       try {
         setLoading(true);
         setError(null);
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const authorData = await getAuthorBySlug(id);
+        setAuthor(authorData);
 
-        const authorName = 'Oscar Wilde';
-        // Mock data
-        setAuthor({
-          id: id || '1',
-          name: authorName,
-          imageUrl: getImageUrl('author', authorName),
-          bio: "Oscar Wilde was an Irish poet and playwright. After writing in different forms throughout the 1880s, he became one of London's most popular playwrights in the early 1890s.",
-          birthYear: 1854,
-          deathYear: 1900,
-          nationality: 'Irish',
-          quotes: [
-            {
-              id: '1',
-              content: "Be yourself; everyone else is already taken.",
-              book: { id: '1', title: 'Personal Letters' }
-            },
-            {
-              id: '2',
-              content: "To live is the rarest thing in the world. Most people exist, that is all.",
-              book: { id: '2', title: 'The Soul of Man Under Socialism' }
-            }
-          ],
-          books: [
-            {
-              id: '1',
-              title: 'The Picture of Dorian Gray',
-              coverUrl: getImageUrl('book', 'The Picture of Dorian Gray'),
-              description: 'A philosophical novel that deals with the nature of art and beauty.',
-              publicationYear: 1890
-            },
-            {
-              id: '2',
-              title: 'The Importance of Being Earnest',
-              coverUrl: getImageUrl('book', 'The Importance of Being Earnest'),
-              description: 'A trivial comedy for serious people.',
-              publicationYear: 1895
-            }
-          ]
-        });
+        const [quotesData, booksData] = await Promise.all([
+          getQuotesByAuthor(authorData.slug, 1, 10),
+          searchBooks(authorData.name, 0, 4).catch(() => ({ books: [], hasMore: false, totalItems: 0 })),
+        ]);
 
-      } catch (err) {
+        setQuotes(quotesData.quotes);
+        setBooks(booksData.books);
+      } catch {
         setError('Failed to load author details. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) {
-      fetchAuthor();
-    }
+    fetchAuthor();
   }, [id]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="container mx-auto px-4 py-8 animate-pulse">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center space-x-8 mb-8">
-              <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700" />
-              <div className="flex-1">
-                <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4" />
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4" />
-              </div>
+      <div className="min-h-screen bg-cream dark:bg-navy-deep">
+        <div className="max-w-5xl mx-auto px-4 py-12 animate-pulse">
+          <div className="flex items-center space-x-8 mb-8">
+            <div className="w-32 h-32 rounded-full bg-muted" />
+            <div className="flex-1">
+              <div className="h-8 bg-muted rounded w-1/2 mb-4" />
+              <div className="h-4 bg-muted rounded w-1/4" />
             </div>
-            <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded mb-8" />
           </div>
+          <div className="h-24 bg-muted rounded mb-8" />
         </div>
       </div>
     );
@@ -119,8 +62,8 @@ const AuthorDetailPage: React.FC = () => {
 
   if (error || !author) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen bg-cream dark:bg-navy-deep">
+        <div className="max-w-5xl mx-auto px-4 py-12">
           <ErrorMessage message={error || 'Author not found'} />
         </div>
       </div>
@@ -128,91 +71,110 @@ const AuthorDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto">
-          {/* Author Header */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 mb-8">
-            <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-8">
-              {author.imageUrl && (
-                <img
-                  src={author.imageUrl}
-                  alt={author.name}
-                  className="w-32 h-32 rounded-full object-cover mb-4 md:mb-0"
-                />
-              )}
-              <div className="flex-1 text-center md:text-left">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                  {author.name}
-                </h1>
-                {(author.birthYear || author.deathYear) && (
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    {author.birthYear} - {author.deathYear || 'Present'}
-                    {author.nationality && ` • ${author.nationality}`}
-                  </p>
-                )}
-                <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
+    <div className="min-h-screen bg-cream dark:bg-navy-deep">
+      <div className="max-w-5xl mx-auto px-4 py-12">
+        {/* Author Header */}
+        <div className="bg-white dark:bg-navy-card rounded-card shadow-sm border border-border p-8 mb-10 card-border-accent">
+          <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-8">
+            <img
+              src={getImageUrl('author', author.name)}
+              alt={author.name}
+              className="w-32 h-32 rounded-full object-cover mb-4 md:mb-0"
+            />
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="font-heading text-4xl text-foreground mb-2 uppercase">
+                {author.name}
+              </h1>
+              <p className="font-label text-xs text-muted-foreground uppercase tracking-wider mb-3">
+                {author.quoteCount} quotes
+              </p>
+              {author.bio && (
+                <p className="font-body text-lg text-muted-foreground leading-relaxed">
                   {author.bio}
                 </p>
-              </div>
+              )}
+              {author.link && (
+                <a
+                  href={author.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-4 font-label text-xs text-primary-500 hover:text-primary-600 uppercase tracking-wider transition-colors"
+                >
+                  Wikipedia →
+                </a>
+              )}
             </div>
           </div>
+        </div>
 
-          {/* Books Section */}
+        {/* Books Section */}
+        {books.length > 0 && (
           <section className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              Books
-            </h2>
+            <h2 className="font-heading text-2xl text-foreground mb-6 uppercase">Books</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {author.books.map((book) => (
-                <Link
+              {books.map((book) => (
+                <a
                   key={book.id}
-                  to={`/books/${book.id}`}
-                  className="group bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+                  href={book.infoLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group bg-white dark:bg-navy-card rounded-card shadow-sm overflow-hidden card-hover border border-border"
                 >
-                  <div className="aspect-w-2 aspect-h-3 bg-gray-100 dark:bg-gray-700">
-                    {book.coverUrl ? (
-                      <img
-                        src={book.coverUrl}
-                        alt={book.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
-                        No Cover
-                      </div>
-                    )}
+                  <div className="aspect-[2/3] bg-muted">
+                    <img
+                      src={book.coverUrl}
+                      alt={book.title}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="p-4">
-                    <h3 className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                    <h3 className="font-heading text-sm text-foreground group-hover:text-primary-500 line-clamp-2 transition-colors uppercase">
                       {book.title}
                     </h3>
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                      {book.publicationYear}
-                    </p>
+                    {book.publishedYear && (
+                      <p className="font-label text-xs text-muted-foreground mt-1">
+                        {book.publishedYear}
+                      </p>
+                    )}
                   </div>
-                </Link>
+                </a>
               ))}
             </div>
           </section>
+        )}
 
-          {/* Quotes Section */}
-          <section>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              Popular Quotes
-            </h2>
-            <div className="grid gap-6">
-              {author.quotes.map((quote) => (
-                <QuoteCard
-                  key={quote.id}
-                  content={quote.content}
-                  author={{ id: author.id, name: author.name }}
-                  book={quote.book}
-                />
+        {/* Quotes Section */}
+        <section>
+          <h2 className="font-heading text-2xl text-foreground mb-6 uppercase">Quotes</h2>
+          {quotes.length > 0 ? (
+            <div className="grid gap-4">
+              {quotes.map((quote) => (
+                <div
+                  key={quote._id}
+                  className="bg-white dark:bg-navy-card rounded-card p-6 shadow-sm border border-border card-hover card-border-accent"
+                >
+                  <blockquote className="font-quote text-lg text-foreground mb-2">
+                    &ldquo;{quote.content}&rdquo;
+                  </blockquote>
+                  {quote.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {quote.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="px-2 py-0.5 bg-primary-500/10 text-primary-500 font-label text-xs uppercase tracking-wider rounded-pill"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
-          </section>
-        </div>
+          ) : (
+            <p className="font-body text-muted-foreground">No quotes found for this author.</p>
+          )}
+        </section>
       </div>
     </div>
   );
