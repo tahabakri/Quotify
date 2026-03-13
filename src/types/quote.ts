@@ -1,40 +1,19 @@
-import { Author } from './author';
-
 export interface Quote {
-  id: string;
+  _id: string;
   content: string;
-  authorId: string;
-  author: Author;
-  source?: string;
-  book?: {
-    id: string;
-    title: string;
-    imageUrl?: string;
-  };
+  author: string;
+  authorSlug: string;
   tags: string[];
-  likes: number;
-  shares: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface TrendingQuote extends Quote {
-  trendingScore: number;
-  trendingSince: string;
-}
-
-export interface QuoteWithContext extends Quote {
-  previousQuote?: Quote;
-  nextQuote?: Quote;
-  relatedQuotes?: Quote[];
+  length: number;
+  dateAdded: string;
+  dateModified: string;
 }
 
 export type QuoteSort = 'popular' | 'recent' | 'random';
 
 export interface QuoteFilters {
-  authorId?: string;
-  bookId?: string;
-  tags?: string[];
-  source?: string;
-  timeRange?: 'day' | 'week' | 'month' | 'year' | 'all';
+  tag?: string;
+  author?: string;
+  minLength?: number;
+  maxLength?: number;
 }
