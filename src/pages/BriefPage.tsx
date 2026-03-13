@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Book } from '../types/book';
-import { Quote } from '../types/quote';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { getRandomQuotes } from '../api/quotes';
+import { useCollectionsStore } from '../store/collections';
+import type { QuotableQuote } from '../api/quotes';
+import type { Book } from '../types/book';
 
 interface BriefPageProps {
   book: Book;
@@ -9,113 +11,90 @@ interface BriefPageProps {
   onBack?: () => void;
 }
 
-export const BriefPage: React.FC<BriefPageProps> = ({ 
-  book, 
+export const BriefPage: React.FC<BriefPageProps> = ({
+  book,
   onGenerateAnother,
-  onBack 
+  onBack,
 }) => {
-  const [quote, setQuote] = useState<Quote | null>(null);
+  const [quote, setQuote] = useState<QuotableQuote | null>(null);
   const [loading, setLoading] = useState(true);
+  const { saveQuote, isSaved } = useCollectionsStore();
 
-  // Simulated quote generation
   React.useEffect(() => {
-    const generateQuote = async () => {
+    const fetchQuote = async () => {
       setLoading(true);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock quote generation
-      setQuote({
-        id: Math.random().toString(),
-        content: "This is a generated quote from the selected book. In a real implementation, this would be generated based on the book's content.",
-        authorId: book.author.id,
-        author: book.author,
-        book: { id: book.id, title: book.title },
-        tags: [],
-        likes: 0,
-        shares: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-      setLoading(false);
+      try {
+        const quotes = await getRandomQuotes(1);
+        if (quotes.length > 0) setQuote(quotes[0]);
+      } catch {
+        setQuote(null);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    generateQuote();
+    fetchQuote();
   }, [book]);
 
+  const handleSave = () => {
+    if (quote) saveQuote(quote);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4">
+    <div className="min-h-screen bg-cream dark:bg-navy-deep py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Back button */}
         <button
+          type="button"
           onClick={onBack}
-          className="mb-8 flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          className="mb-8 flex items-center font-label text-xs text-muted-foreground hover:text-foreground uppercase tracking-wider transition-colors"
         >
-          <svg 
-            className="w-5 h-5 mr-2" 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M10 19l-7-7m0 0l7-7m-7 7h18" 
-            />
+          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           Back to Book Selection
         </button>
 
-        {/* Main content */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+        <div className="bg-white dark:bg-navy-card rounded-card shadow-sm border border-border card-border-accent p-8 md:p-12">
           {loading ? (
             <div className="flex justify-center items-center h-64">
               <LoadingSpinner />
             </div>
           ) : quote ? (
-            <div className="space-y-8">
-              {/* Quote */}
-              <blockquote className="text-2xl md:text-3xl text-gray-900 dark:text-white font-serif italic text-center">
-                "{quote.content}"
+            <div className="space-y-10">
+              <blockquote className="font-quote text-2xl md:text-4xl text-foreground italic text-center leading-relaxed">
+                &ldquo;{quote.content}&rdquo;
               </blockquote>
 
-              {/* Book and Author info */}
               <div className="text-center">
-                <p className="text-lg font-medium text-gray-900 dark:text-white">
-                  {book.title}
+                <p className="font-heading text-sm tracking-wider text-foreground uppercase">
+                  {quote.author}
                 </p>
-                <p className="text-gray-600 dark:text-gray-400">
-                  by {book.author.name}
+                <p className="font-label text-xs text-muted-foreground mt-1 uppercase tracking-wider">
+                  Inspired by: {book.title}
                 </p>
               </div>
 
-              {/* Actions */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <button
+                  type="button"
                   onClick={onGenerateAnother}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium 
-                           hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="px-8 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-pill font-label text-xs uppercase tracking-wider transition-all btn-magnetic"
                 >
-                  Generate Another Quote
+                  Get Another Quote
                 </button>
-                
                 <button
-                  onClick={() => {
-                    // In a real implementation, this would save to the user's favorites
-                    alert('Quote saved to favorites!');
-                  }}
-                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-medium
-                           text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700
-                           transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  type="button"
+                  onClick={handleSave}
+                  disabled={isSaved(quote._id)}
+                  className="px-8 py-3 border border-border rounded-pill font-label text-xs text-muted-foreground uppercase tracking-wider hover:border-primary-500/40 disabled:opacity-50 transition-all"
                 >
-                  Save Quote
+                  {isSaved(quote._id) ? 'Saved!' : 'Save Quote'}
                 </button>
               </div>
             </div>
           ) : (
-            <div className="text-center text-gray-600 dark:text-gray-400">
-              Failed to generate quote. Please try again.
+            <div className="text-center font-body text-muted-foreground py-12">
+              Failed to load quote. Please try again.
             </div>
           )}
         </div>
