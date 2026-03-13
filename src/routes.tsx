@@ -4,7 +4,10 @@ import LandingPage from './pages/LandingPage';
 import SearchResultsPage from './pages/SearchResultsPage';
 import QuoteDetailPage from './pages/QuoteDetailPage';
 import AuthorDetailPage from './pages/AuthorDetailPage';
+import AuthorsIndexPage from './pages/AuthorsIndexPage';
 import CollectionsPage from './pages/CollectionsPage';
+import CollectionDetailPage from './pages/CollectionDetailPage';
+import SettingsPage from './pages/SettingsPage';
 
 export const router = createBrowserRouter([
   {
@@ -13,41 +16,45 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <LandingPage />
+        element: <LandingPage />,
       },
       {
         path: 'search',
-        element: <SearchResultsPage />
+        element: <SearchResultsPage />,
       },
       {
         path: 'quotes/:id',
-        element: <QuoteDetailPage />
+        element: <QuoteDetailPage />,
       },
       {
         path: 'authors',
         children: [
           {
             index: true,
-            element: <div>Authors Page (Coming Soon)</div>
+            element: <AuthorsIndexPage />,
           },
           {
             path: ':id',
-            element: <AuthorDetailPage />
-          }
-        ]
+            element: <AuthorDetailPage />,
+          },
+        ],
       },
       {
         path: 'collections',
         children: [
           {
             index: true,
-            element: <CollectionsPage />
+            element: <CollectionsPage />,
           },
           {
             path: ':id',
-            element: <div>Collection Detail Page (Coming Soon)</div>
-          }
-        ]
+            element: <CollectionDetailPage />,
+          },
+        ],
+      },
+      {
+        path: 'settings',
+        element: <SettingsPage />,
       },
       {
         path: '*',
@@ -58,12 +65,12 @@ export const router = createBrowserRouter([
                 404: Page Not Found
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                The page you're looking for doesn't exist.
+                The page you&apos;re looking for doesn&apos;t exist.
               </p>
             </div>
           </div>
-        )
-      }
-    ]
-  }
+        ),
+      },
+    ],
+  },
 ]);
