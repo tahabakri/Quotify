@@ -20,6 +20,12 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        heading: ['"Barlow Condensed"', 'sans-serif'],
+        serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+        body: ['"Lora"', 'Georgia', 'serif'],
+        mono: ['"IBM Plex Mono"', 'monospace'],
+      },
       keyframes: {
         shimmer: {
           '100%': { transform: 'translateX(100%)' }
@@ -32,11 +38,16 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: 0 },
         },
+        'fade-up': {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         shimmer: 'shimmer 2s infinite',
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        'fade-up': 'fade-up 0.6s ease-out forwards',
       },
       colors: {
         border: "hsl(var(--border))",
@@ -44,20 +55,31 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        cream: '#F0EEEA',
+        navy: {
+          DEFAULT: '#1A1A2E',
+          deep: '#111111',
+          card: '#222240',
+        },
+        gold: {
+          DEFAULT: '#E8B94A',
+          light: '#f5d98a',
+          dark: '#c99a2e',
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
+          50: '#eeeeff',
+          100: '#d8d8f8',
+          200: '#b3b3f0',
+          300: '#8585e0',
+          400: '#5a5ad4',
+          500: '#3D3DC4',
+          600: '#3232a8',
+          700: '#27278a',
+          800: '#1c1c6c',
+          900: '#12124e',
+          950: '#0a0a30',
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -88,6 +110,8 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        card: '2rem',
+        pill: '3rem',
       },
       typography: (theme) => ({
         DEFAULT: {
