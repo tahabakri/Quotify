@@ -2,42 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { getImageUrl } from '../utils/imageHelpers';
-
-interface Comment {
-  id: string;
-  text: string;
-  user: {
-    id: string;
-    name: string;
-    avatarUrl?: string;
-  };
-  createdAt: string;
-}
-
-interface Quote {
-  id: string;
-  text: string;
-  author: {
-    id: string;
-    name: string;
-    imageUrl?: string;
-  };
-  book?: {
-    id: string;
-    title: string;
-    coverUrl?: string;
-  };
-  likes: number;
-  isLiked: boolean;
-  comments: Comment[];
-}
+import { getRandomQuotes } from '../api/quotes';
+import { useCollectionsStore } from '../store/collections';
+import type { QuotableQuote } from '../api/quotes';
 
 const QuoteDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [quote, setQuote] = useState<Quote | null>(null);
+  const [quote, setQuote] = useState<QuotableQuote | null>(null);
+  const [relatedQuotes, setRelatedQuotes] = useState<QuotableQuote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [comment, setComment] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const { isLiked, toggleLike, isSaved, saveQuote, unsaveQuote } = useCollectionsStore();
 
   useEffect(() => {
     const fetchQuote = async () => {
@@ -45,105 +22,45 @@ const QuoteDetailPage: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const authorName = 'Albert Einstein';
-        const bookTitle = 'The World As I See It';
-
-        // Mock data
-        setQuote({
-          id: id || '1',
-          text: "Two things are infinite: the universe and human stupidity; and I'm not sure about the universe.",
-          author: {
-            id: '1',
-            name: authorName,
-            imageUrl: getImageUrl('author', authorName)
-          },
-          book: {
-            id: '1',
-            title: bookTitle,
-            coverUrl: getImageUrl('book', bookTitle)
-          },
-          likes: 1234,
-          isLiked: false,
-          comments: [
-            {
-              id: '1',
-              text: 'This quote really resonates with me!',
-              user: {
-                id: '1',
-                name: 'John Doe',
-                avatarUrl: getImageUrl('curator', 'John Doe') // Using curator style for user avatars
-              },
-              createdAt: '2025-03-21T12:00:00Z'
-            }
-          ]
-        });
-
-      } catch (err) {
-        setError('Failed to load quote details. Please try again later.');
+        const quotes = await getRandomQuotes(5);
+        if (quotes.length > 0) {
+          setQuote(quotes[0]);
+          setRelatedQuotes(quotes.slice(1));
+        }
+      } catch {
+        setError('Failed to load quote. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) {
-      fetchQuote();
-    }
+    fetchQuote();
   }, [id]);
 
-  const handleLike = () => {
-    if (quote) {
-      setQuote(prev => prev ? {
-        ...prev,
-        likes: prev.isLiked ? prev.likes - 1 : prev.likes + 1,
-        isLiked: !prev.isLiked
-      } : null);
-    }
-  };
-
   const handleShare = () => {
-    // TODO: Implement share functionality
-    navigator.clipboard.writeText(window.location.href);
+    navigator.clipboard.writeText(
+      quote ? `"${quote.content}" — ${quote.author}` : window.location.href
+    );
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleComment = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!comment.trim()) return;
-
-    // Add new comment to the list
-    if (quote) {
-      const userName = 'Current User';
-      const newComment: Comment = {
-        id: Date.now().toString(),
-        text: comment,
-        user: {
-          id: 'current-user',
-          name: userName,
-          avatarUrl: getImageUrl('curator', userName)
-        },
-        createdAt: new Date().toISOString()
-      };
-
-      setQuote(prev => prev ? {
-        ...prev,
-        comments: [newComment, ...prev.comments]
-      } : null);
-
-      setComment('');
+  const handleSaveToggle = () => {
+    if (!quote) return;
+    if (isSaved(quote._id)) {
+      unsaveQuote(quote._id);
+    } else {
+      saveQuote(quote);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="container mx-auto px-4 py-8 animate-pulse">
-          <div className="max-w-4xl mx-auto">
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4" />
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-8" />
-            <div className="h-40 bg-gray-200 dark:bg-gray-700 rounded mb-8" />
-          </div>
+      <div className="min-h-screen bg-cream dark:bg-navy-deep">
+        <div className="max-w-4xl mx-auto px-4 py-12 animate-pulse">
+          <div className="h-8 bg-muted rounded w-3/4 mb-4" />
+          <div className="h-6 bg-muted rounded w-1/2 mb-8" />
+          <div className="h-40 bg-muted rounded mb-8" />
         </div>
       </div>
     );
@@ -151,8 +68,8 @@ const QuoteDetailPage: React.FC = () => {
 
   if (error || !quote) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen bg-cream dark:bg-navy-deep">
+        <div className="max-w-4xl mx-auto px-4 py-12">
           <ErrorMessage message={error || 'Quote not found'} />
         </div>
       </div>
@@ -160,132 +77,108 @@ const QuoteDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Quote */}
-          <article className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-            <div className="p-8 md:p-12">
-              <blockquote className="text-2xl md:text-3xl font-serif text-gray-900 dark:text-white leading-relaxed mb-8">
-                "{quote.text}"
-              </blockquote>
+    <div className="min-h-screen bg-cream dark:bg-navy-deep">
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        {/* Quote */}
+        <article className="bg-white dark:bg-navy-card rounded-card shadow-lg overflow-hidden card-border-accent border border-border">
+          <div className="p-8 md:p-12">
+            <blockquote className="font-quote text-2xl md:text-3xl text-foreground leading-relaxed mb-8">
+              &ldquo;{quote.content}&rdquo;
+            </blockquote>
 
-              <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-6">
-                <div className="flex items-center">
-                  <Link 
-                    to={`/authors/${quote.author.id}`}
-                    className="flex items-center group"
+            {/* Tags */}
+            {quote.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-6">
+                {quote.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-3 py-1 bg-primary-500/10 text-primary-500 dark:text-primary-300 font-label text-xs uppercase tracking-wider rounded-pill"
                   >
-                    {quote.author.imageUrl && (
-                      <img
-                        src={quote.author.imageUrl}
-                        alt={quote.author.name}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    )}
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                        {quote.author.name}
-                      </h3>
-                      {quote.book && (
-                        <Link
-                          to={`/books/${quote.book.id}`}
-                          className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
-                        >
-                          {quote.book.title}
-                        </Link>
-                      )}
-                    </div>
-                  </Link>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  <button
-                    onClick={handleLike}
-                    className={`flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 ${
-                      quote.isLiked ? 'text-blue-600 dark:text-blue-400' : ''
-                    }`}
-                    aria-label={quote.isLiked ? 'Unlike quote' : 'Like quote'}
-                  >
-                    <span>❤️</span>
-                    <span>{quote.likes}</span>
-                  </button>
-                  <button
-                    onClick={handleShare}
-                    className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
-                    aria-label="Share quote"
-                  >
-                    <span>↗️</span>
-                  </button>
-                </div>
+                    {tag}
+                  </span>
+                ))}
               </div>
-            </div>
-          </article>
+            )}
 
-          {/* Comments Section */}
-          <section className="mt-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-              Discussion
-            </h2>
+            <div className="flex items-center justify-between border-t border-border pt-6">
+              <Link
+                to={`/authors/${quote.authorSlug}`}
+                className="flex items-center group"
+              >
+                <img
+                  src={getImageUrl('author', quote.author)}
+                  alt={quote.author}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+                <div className="ml-4">
+                  <h3 className="font-heading text-sm tracking-wider text-foreground group-hover:text-primary-500 transition-colors uppercase">
+                    {quote.author}
+                  </h3>
+                </div>
+              </Link>
 
-            {/* Comment Form */}
-            <form onSubmit={handleComment} className="mb-8">
-              <label htmlFor="comment" className="sr-only">
-                Add a comment
-              </label>
-              <textarea
-                id="comment"
-                rows={3}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                placeholder="Share your thoughts..."
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-              />
-              <div className="mt-2 flex justify-end">
+              <div className="flex items-center space-x-2">
                 <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                  disabled={!comment.trim()}
+                  type="button"
+                  onClick={() => toggleLike(quote._id)}
+                  className={`p-2 rounded-pill transition-all ${
+                    isLiked(quote._id)
+                      ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
+                      : 'text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                  }`}
+                  aria-label={isLiked(quote._id) ? 'Unlike' : 'Like'}
                 >
-                  Post Comment
+                  {isLiked(quote._id) ? '❤️' : '🤍'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveToggle}
+                  className={`p-2 rounded-pill transition-all ${
+                    isSaved(quote._id)
+                      ? 'text-primary-500 bg-primary-500/10'
+                      : 'text-muted-foreground hover:text-primary-500 hover:bg-primary-500/10'
+                  }`}
+                  aria-label={isSaved(quote._id) ? 'Unsave' : 'Save'}
+                >
+                  {isSaved(quote._id) ? '🔖' : '📑'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="p-2 rounded-pill text-muted-foreground hover:text-primary-500 hover:bg-primary-500/10 transition-all"
+                  aria-label="Copy quote"
+                >
+                  {copied ? '✓' : '📋'}
                 </button>
               </div>
-            </form>
+            </div>
+          </div>
+        </article>
 
-            {/* Comments List */}
-            <div className="space-y-6">
-              {quote.comments.map((comment) => (
+        {/* Related Quotes */}
+        {relatedQuotes.length > 0 && (
+          <section className="mt-12">
+            <h2 className="font-heading text-2xl text-foreground mb-6">More Quotes</h2>
+            <div className="grid gap-4">
+              {relatedQuotes.map((rq) => (
                 <div
-                  key={comment.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm"
+                  key={rq._id}
+                  className="bg-white dark:bg-navy-card rounded-card p-6 shadow-sm border border-border card-hover card-border-accent"
                 >
-                  <div className="flex items-start space-x-4">
-                    {comment.user.avatarUrl && (
-                      <img
-                        src={comment.user.avatarUrl}
-                        alt={comment.user.name}
-                        className="w-10 h-10 rounded-full"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-medium text-gray-900 dark:text-white">
-                          {comment.user.name}
-                        </h4>
-                        <time className="text-sm text-gray-500 dark:text-gray-400">
-                          {new Date(comment.createdAt).toLocaleDateString()}
-                        </time>
-                      </div>
-                      <p className="mt-1 text-gray-600 dark:text-gray-300">
-                        {comment.text}
-                      </p>
-                    </div>
-                  </div>
+                  <blockquote className="font-quote text-lg text-foreground mb-3">
+                    &ldquo;{rq.content}&rdquo;
+                  </blockquote>
+                  <Link
+                    to={`/authors/${rq.authorSlug}`}
+                    className="font-label text-xs text-muted-foreground hover:text-primary-500 uppercase tracking-wider transition-colors"
+                  >
+                    — {rq.author}
+                  </Link>
                 </div>
               ))}
             </div>
           </section>
-        </div>
+        )}
       </div>
     </div>
   );
