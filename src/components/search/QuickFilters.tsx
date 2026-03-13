@@ -20,17 +20,18 @@ export const QuickFilters = () => {
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('trending');
 
   return (
-    <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
+    <div className="flex items-center justify-center gap-3 mt-6 flex-wrap">
       {FILTERS.map((filter) => (
         <button
           key={filter.id}
+          type="button"
           onClick={() => setActiveFilter(filter.category)}
           className={`
-            px-4 py-2 rounded-full text-sm font-medium transition-all
+            btn-magnetic font-label px-5 py-2.5 rounded-pill text-xs transition-all
             ${
               activeFilter === filter.category
-              ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              ? 'bg-primary-500 text-white shadow-md shadow-primary-500/20'
+              : 'bg-white/60 dark:bg-navy-card/60 text-foreground/70 hover:bg-white dark:hover:bg-navy-card border border-border'
             }
           `}
         >
