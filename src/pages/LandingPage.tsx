@@ -1,36 +1,20 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { HeroSection } from '../components/sections/HeroSection';
 import { QuoteCard, QuoteCardSkeleton } from '../components/quote/QuoteCard';
-import { AuthorCard } from '../components/Author/AuthorCard';
-import { CollectionCard, CollectionCardSkeleton } from '../components/Collection/CollectionCard';
 import { ErrorMessage } from '../components/common/ErrorMessage';
-import { BookSelection } from '../components/Book/BookSelection';
-import { BriefPage } from './BriefPage';
-import type { Collection } from '../types/collection';
-import type { Book } from '../types/book';
-import type { Author } from '../types/author';
+import { getRandomQuote, getRandomQuotes } from '../api/quotes';
+import { getAuthors } from '../api/authors';
 import { getImageUrl } from '../utils/imageHelpers';
-
-interface LocalQuote {
-  id: string;
-  content: string;
-  author: {
-    id: string;
-    name: string;
-  };
-  book?: {
-    id: string;
-    title: string;
-  };
-}
+import { Link } from 'react-router-dom';
+import { scrollFadeUp, premiumTransition, viewportConfig } from '../lib/animations';
+import type { QuotableQuote } from '../api/quotes';
+import type { QuotableAuthor } from '../api/authors';
 
 const LandingPage: React.FC = () => {
-  const [quoteOfDay, setQuoteOfDay] = useState<LocalQuote | null>(null);
-  const [recentQuotes, setRecentQuotes] = useState<LocalQuote[]>([]);
-  const [popularAuthors, setPopularAuthors] = useState<Author[]>([]);
-  const [featuredCollections, setFeaturedCollections] = useState<Collection[]>([]);
-  const [books, setBooks] = useState<Book[]>([]);
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [quoteOfDay, setQuoteOfDay] = useState<QuotableQuote | null>(null);
+  const [recentQuotes, setRecentQuotes] = useState<QuotableQuote[]>([]);
+  const [popularAuthors, setPopularAuthors] = useState<QuotableAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,135 +22,18 @@ const LandingPage: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // TODO: Replace with actual API calls
-        await Promise.all([
-          // Simulate API calls with setTimeout
-          new Promise(resolve => setTimeout(resolve, 1000))
+        const [qod, recent, authorsData] = await Promise.all([
+          getRandomQuote(),
+          getRandomQuotes(4),
+          getAuthors(1, 8, 'quoteCount', 'desc'),
         ]);
 
-        // Mock data
-        setQuoteOfDay({
-          id: '1',
-          content: "Life is what happens while you're busy making other plans.",
-          author: { id: '1', name: 'John Lennon' }
-        });
-
-        setRecentQuotes([
-          {
-            id: '2',
-            content: "The only way to do great work is to love what you do.",
-            author: { id: '2', name: 'Steve Jobs' },
-            book: { id: '1', title: 'The Innovation Secrets' }
-          },
-          {
-            id: '3',
-            content: "Be the change you wish to see in the world.",
-            author: { id: '3', name: 'Mahatma Gandhi' }
-          }
-        ]);
-
-        const mockAuthors: Author[] = [
-          {
-            id: '1',
-            name: 'Marcus Aurelius',
-            imageUrl: getImageUrl('author', 'Marcus Aurelius'),
-            quotesCount: 150,
-            worksCount: 3,
-            followers: 5000,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          },
-          {
-            id: '2',
-            name: 'Jane Austen',
-            imageUrl: getImageUrl('author', 'Jane Austen'),
-            quotesCount: 200,
-            worksCount: 6,
-            followers: 7500,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ];
-
-        setPopularAuthors(mockAuthors);
-
-        // Mock featured collections
-        setFeaturedCollections([
-          {
-            id: '1',
-            name: 'Stoic Wisdom',
-            description: 'Ancient wisdom for modern life',
-            curatorId: '1',
-            curator: {
-              id: '1',
-              name: 'Philosophy Guide',
-              imageUrl: getImageUrl('curator', 'Philosophy Guide')
-            },
-            isPublic: true,
-            isFeatured: true,
-            quotes: [],
-            quoteCount: 100,
-            followers: 1500,
-            tags: ['philosophy', 'stoicism', 'wisdom'],
-            theme: {
-              backgroundColor: 'blue',
-              textColor: 'white'
-            },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          },
-          {
-            id: '2',
-            name: 'Literary Classics',
-            description: 'Timeless quotes from classic literature',
-            curatorId: '2',
-            curator: {
-              id: '2',
-              name: 'Book Lover',
-              imageUrl: getImageUrl('curator', 'Book Lover')
-            },
-            isPublic: true,
-            isFeatured: true,
-            quotes: [],
-            quoteCount: 150,
-            followers: 2000,
-            tags: ['literature', 'classics', 'books'],
-            theme: {
-              backgroundColor: 'purple',
-              textColor: 'white'
-            },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ]);
-
-        // Mock books data
-        setBooks([
-          {
-            id: '1',
-            title: 'Meditations',
-            author: mockAuthors[0],
-            coverUrl: getImageUrl('book', 'Meditations'),
-            category: 'Philosophy',
-            description: 'Personal writings of the Roman Emperor Marcus Aurelius',
-            publishedYear: 180,
-            quotesCount: 75
-          },
-          {
-            id: '2',
-            title: 'Pride and Prejudice',
-            author: mockAuthors[1],
-            coverUrl: getImageUrl('book', 'Pride and Prejudice'),
-            category: 'Fiction',
-            description: 'A classic of English literature',
-            publishedYear: 1813,
-            quotesCount: 100
-          }
-        ]);
-
-        setLoading(false);
-      } catch (err) {
+        setQuoteOfDay(qod);
+        setRecentQuotes(recent);
+        setPopularAuthors(authorsData.authors);
+      } catch {
         setError('Failed to load content. Please try again later.');
+      } finally {
         setLoading(false);
       }
     };
@@ -178,28 +45,20 @@ const LandingPage: React.FC = () => {
     return <ErrorMessage message={error} />;
   }
 
-  if (selectedBook) {
-    return (
-      <BriefPage
-        book={selectedBook}
-        onGenerateAnother={() => {
-          const book = selectedBook;
-          setSelectedBook(null);
-          setTimeout(() => setSelectedBook(book), 0);
-        }}
-        onBack={() => setSelectedBook(null)}
-      />
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen">
       <HeroSection />
 
-      <main className="container mx-auto px-4 py-12 space-y-16">
+      <main className="max-w-5xl mx-auto px-4 py-24 space-y-24">
         {/* Quote of the Day */}
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+        <motion.section
+          variants={scrollFadeUp}
+          initial="initial"
+          whileInView="whileInView"
+          viewport={viewportConfig}
+          transition={premiumTransition}
+        >
+          <h2 className="font-heading text-3xl text-foreground mb-8">
             Quote of the Day
           </h2>
           {loading ? (
@@ -208,30 +67,23 @@ const LandingPage: React.FC = () => {
             quoteOfDay && (
               <QuoteCard
                 content={quoteOfDay.content}
-                author={quoteOfDay.author}
-                book={quoteOfDay.book}
+                author={{ id: quoteOfDay.authorSlug, name: quoteOfDay.author }}
                 isQuoteOfTheDay
               />
             )
           )}
-        </section>
+        </motion.section>
 
-        {/* Book Selection */}
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            Select a Book
-          </h2>
-          <BookSelection
-            books={books}
-            loading={loading}
-            onBookSelect={setSelectedBook}
-          />
-        </section>
-
-        {/* Recently Added Quotes */}
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            Recently Added
+        {/* Discover Quotes */}
+        <motion.section
+          variants={scrollFadeUp}
+          initial="initial"
+          whileInView="whileInView"
+          viewport={viewportConfig}
+          transition={premiumTransition}
+        >
+          <h2 className="font-heading text-3xl text-foreground mb-8">
+            Discover Quotes
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {loading ? (
@@ -240,58 +92,68 @@ const LandingPage: React.FC = () => {
                 <QuoteCardSkeleton />
               </>
             ) : (
-              recentQuotes.map(quote => (
+              recentQuotes.map((quote) => (
                 <QuoteCard
-                  key={quote.id}
+                  key={quote._id}
                   content={quote.content}
-                  author={quote.author}
-                  book={quote.book}
+                  author={{ id: quote.authorSlug, name: quote.author }}
                 />
               ))
             )}
           </div>
-        </section>
+        </motion.section>
 
         {/* Popular Authors */}
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            Popular Authors
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.section
+          variants={scrollFadeUp}
+          initial="initial"
+          whileInView="whileInView"
+          viewport={viewportConfig}
+          transition={premiumTransition}
+        >
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="font-heading text-3xl text-foreground">
+              Popular Authors
+            </h2>
+            <Link
+              to="/authors"
+              className="font-label text-primary-500 hover:text-primary-600 transition-colors"
+            >
+              View All
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {loading ? (
-              <>
-                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-lg h-32" />
-                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-lg h-32" />
-                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-lg h-32" />
-                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-lg h-32" />
-              </>
+              [1, 2, 3, 4].map((i) => (
+                <div key={i} className="animate-pulse bg-muted rounded-card h-24" />
+              ))
             ) : (
-              popularAuthors.map(author => (
-                <AuthorCard key={author.id} {...author} />
+              popularAuthors.map((author) => (
+                <Link
+                  key={author._id}
+                  to={`/authors/${author.slug}`}
+                  className="bg-white dark:bg-navy-card rounded-card p-5 shadow-sm card-hover card-border-accent border border-border group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <img
+                      src={getImageUrl('author', author.name)}
+                      alt={author.name}
+                      className="w-12 h-12 rounded-full"
+                    />
+                    <div>
+                      <h3 className="font-heading text-sm text-foreground group-hover:text-primary-500 transition-colors">
+                        {author.name}
+                      </h3>
+                      <p className="font-label text-muted-foreground mt-0.5">
+                        {author.quoteCount} quotes
+                      </p>
+                    </div>
+                  </div>
+                </Link>
               ))
             )}
           </div>
-        </section>
-
-        {/* Featured Collections */}
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            Featured Collections
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loading ? (
-              <>
-                <CollectionCardSkeleton />
-                <CollectionCardSkeleton />
-                <CollectionCardSkeleton />
-              </>
-            ) : (
-              featuredCollections.map(collection => (
-                <CollectionCard key={collection.id} collection={collection} />
-              ))
-            )}
-          </div>
-        </section>
+        </motion.section>
       </main>
     </div>
   );
